@@ -20,6 +20,11 @@ server.httpServer = http.createServer(function(req, res) {
 
 });
 
+server.httpsServerOption = {
+    'key': fs.readFileSync(path.join(__dirname, '/../https/key.pem')),
+    'cert': fs.readFileSync(path.join(__dirname, '/../https/cert.pem'))
+}
+
 server.httpsServer = https.createServer(function(req, res) {
 
 });
