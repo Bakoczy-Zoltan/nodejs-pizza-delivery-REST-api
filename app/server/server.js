@@ -8,6 +8,8 @@ const https = require('https');
 const config = require('../service/config');
 const path = require('path');
 const userService = require('../service/user-service');
+const fs = require('fs');
+const helper = require('../service/helper');
 
 const BASE_HTTP_URL = `http://localhost:${config.httpPort}/`;
 const BASE_HTTPS_URL = `http://localhost:${config.httpsPort}/`;
@@ -25,24 +27,53 @@ server.httpsServerOption = {
     'cert': fs.readFileSync(path.join(__dirname, '/../https/cert.pem'))
 }
 
-server.httpsServer = https.createServer(function(req, res) {
-
+server.httpsServer = https.createServer(this.httpsServerOption, function(req, res) {
+    server.httpsServer(req, res);
 });
 
 server.unifiedServer = function(req, res, baseUrl) {
     const url = new URL(req.url, baseUrl);
     const trimmedPathName = url.pathname.replace(/^\/+|\/$/g, '');
     const method = req.method.toLowerCase();
-    console.log(trimmedPathName);
+    const headers = req.headers;
+    const searchParams = url.searchParams;
 
-    const
 
-    const serviceFunction =
-        typeof(router[trimmedPathName]) === 'object' ? router[trimmedPathName] : router.notFound;
 
-    serviceFunction();
+    req.on('data', function() {
+        console.log(req.body, "body");
+
+    });
+
+
+    req.on('end', function() {
+
+        const reqData = {
+            'method': method,
+            'path': trimmedPathName,
+            'headers': headers,
+            'searchParamMap': searchParams,
+            'payLoad': ''
+        };
+
+        // console.log(reqData);
+
+
+        const serviceFunction =
+            typeof(router[trimmedPathName]) === 'function' ? router[trimmedPathName] : router.notFound;
+
+        serviceFunction(reqData, function(statCode, resPayLoad) {
+            let statusCode = typeof(statCode) === 'number' ? statCode : 200;
+            let respBodyData = helper.makeJSONobject(resPayLoad);
+
+            res.setHeader = { 'Content-Type': 'application/json; charset=utf8' };
+            res.writeHead(statusCode);
+            res.end(respBodyData);
+        });
+
+    })
+
 }
-
 
 server.init = function() {
     server.httpServer.listen(config.httpPort, () => {
@@ -55,10 +86,11 @@ server.init = function() {
 }
 
 const router = {
-    user: userService,
+    user: userService.methodHandler,
     token: {},
     notFound: function(data, callback) {
-        callback(404)
+        console.log("not found");
+        callback(404, {});
     }
 };
 
