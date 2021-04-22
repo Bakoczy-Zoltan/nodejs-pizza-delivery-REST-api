@@ -22,7 +22,7 @@ userService.post = function(data, callback) {
     const hashedPassword = helper.hashPassword(newUser.password);
     if (hashedPassword && newUser) {
         newUser.password = hashedPassword;
-        repositoryService._saveNewEntity(data.payLoad, 'db', 'users', function(err, newUserData) {
+        repositoryService._saveNewEntity(data.payLoad, 'user', 'users', function(err, newUserData) {
             if (!err && newUserData) {
                 callback(201, newUserData);
             } else {
@@ -44,7 +44,7 @@ userService.get = function(data, callback) {
         tokenPromise
             .then(token => {
                 if (token && token.userId == userId && token.expireDate > Date.now()) {
-                    repositoryService._getEntityById(userId, 'db', 'users', function(err, userData) {
+                    repositoryService._getEntityById(userId, 'user', 'users', function(err, userData) {
                         if (!err && userData && token.expireDate > Date.now()) {
                             delete userData.password;
                             callback(200, userData);
@@ -70,7 +70,7 @@ userService.put = function(data, callback) {
 
         tokenPromise.then(token => {
             if (token && token.userId == userId && token.expireDate > Date.now()) {
-                repositoryService._updateEntity(userId, data.payLoad, 'db', 'users', function(err) {
+                repositoryService._updateEntity(userId, data.payLoad, 'user', 'users', function(err) {
                     if (!err) {
                         callback(200);
                     } else {
@@ -91,15 +91,21 @@ userService.delete = function(data, callback) {
     console.log("Delete get");
     const userId = data.searchParamMap.get('id');
     const token = data.headers.token;
-    if (userId && token && token.expireDate > Date.now()) {
+    if (userId && token) {
         const tokenPromise = tokenService._checkToken(token);
 
         tokenPromise.then(token => {
-            if (token && token.userId == userId) {
-                repositoryService._deleteEntity(userId, 'db', 'users', function(err) {
+            if (token && token.userId == userId && token.expireDate > Date.now()) {
+                repositoryService._deleteEntity(userId, 'user', 'users', function(err) {
                     console.log(err);
                     if (!err) {
-                        callback(200);
+                        repositoryService._deleteEntity(userId, 'token', 'tokens', function(err) {
+                            if (!err) {
+                                callback(false, { 'User': 'Deleted' });
+                            } else {
+                                callback(500, { 'Error': 'Token may be still alive' });
+                            }
+                        })
                     } else {
                         callback(500, err);
                     }
@@ -111,7 +117,6 @@ userService.delete = function(data, callback) {
     } else {
         callback(403);
     }
-
 };
 
 module.exports = userService;

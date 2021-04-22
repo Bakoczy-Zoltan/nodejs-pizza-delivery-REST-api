@@ -57,7 +57,7 @@ tokenHandler._searchUserByEmailAndPassword = function(loginData) {
     loginData.password = hashedPassword;
 
     return new Promise((res, rej) => {
-        fs.readFile(repositoryService.baseLib + 'db.json', 'utf8', function(err, dbData) {
+        fs.readFile(repositoryService.baseLib + 'user.json', 'utf8', function(err, dbData) {
             if (!err && dbData) {
                 const dbDataObject = helper.parseJSONobject(dbData);
 
@@ -81,7 +81,7 @@ tokenHandler._deleteTokenByUserId = function(userId, callback) {
             const listWithoutDeletedToken = tokenListObject.tokens.filter(token => token.userId != userId);
             tokenListObject.tokens = listWithoutDeletedToken;
             const newJsonTokenData = helper.makeJSONobject(tokenListObject);
-            repositoryService._refreshDataInJsonFile(repositoryService.baseLib, 'token', newJsonTokenData, function(err) {
+            repositoryService._refreshDataInJsonFile(repositoryService.baseLib, 'token', newJsonTokenData, {}, function(err) {
                 if (!err) {
                     callback(200);
                 } else {
@@ -89,7 +89,7 @@ tokenHandler._deleteTokenByUserId = function(userId, callback) {
                 }
             });
         } else {
-            callback(500, { 'Error': 'Coulf noz open token file' })
+            callback(500, { 'Error': 'Could not open token file' })
         }
     });
 }

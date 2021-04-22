@@ -1,6 +1,6 @@
 /**
  * 
- * Repository layer. This service is responsible for connection to "database". In this case to db.json in .data folder
+ * Repository layer. This service is responsible for connection to "database's" json files in .data folder
  * 
  */
 
@@ -9,7 +9,6 @@
 const fs = require('fs');
 const helper = require('../service/helper');
 const path = require('path');
-
 
 
 const dataHandler = {};
@@ -22,15 +21,15 @@ dataHandler._saveNewEntity = function(entityObj, dbFileName, entityListName, cal
             if (!err && userData) {
                 const dbObj = helper.parseJSONobject(userData);
 
-                const userListObject = dbObj[entityListName];
-                let lastUserId = userListObject[(userListObject.length - 1)] !== undefined ? userListObject[(userListObject.length - 1)].id : 0;
-                entityObj.id = lastUserId + 1;
-                userListObject.push(entityObj);
-                dbObj[entityListName] = userListObject;
+                const entityListObjcet = dbObj[entityListName];
+                let lastIdInList = entityListObjcet[(entityListObjcet.length - 1)] !== undefined ? entityListObjcet[(entityListObjcet.length - 1)].id : 0;
+                entityObj.id = lastIdInList + 1;
+                entityListObjcet.push(entityObj);
+                dbObj[entityListName] = entityListObjcet;
 
-                const jsonUserList = helper.makeJSONobject(dbObj);
+                const newJsonList = helper.makeJSONobject(dbObj);
 
-                dataHandler._refreshDataInJsonFile(dataHandler.baseLib, dbFileName, jsonUserList, entityObj, callback);
+                dataHandler._refreshDataInJsonFile(dataHandler.baseLib, dbFileName, newJsonList, entityObj, callback);
             } else {
                 callback({ 'Error': 'Could not read the file of ' + dbFileName });
             }
@@ -101,7 +100,7 @@ dataHandler._deleteEntity = function(id, dbFileName, listName, callback) {
                 if (indexOfDeletedUser > -1) {
                     dbObj[listName].splice(indexOfDeletedUser, 1);
                     const jsonObjToSave = helper.makeJSONobject(dbObj);
-                    dataHandler._refreshDataInJsonFile(dataHandler.baseLib, dbFileName, jsonObjToSave, callback);
+                    dataHandler._refreshDataInJsonFile(dataHandler.baseLib, dbFileName, jsonObjToSave, {}, callback);
                 } else {
                     callback({ 'Error': 'User not found' });
                 }
@@ -123,7 +122,6 @@ dataHandler._refreshDataInJsonFile = function(baseLib, dbFileName, jsonObjToSave
                 if (!err) {
                     fs.close(fd, function(err) {
                         if (!err) {
-                            // const responseObject = helper.parseJSONobject(jsonObjToSave);
                             delete newEntity.password;
                             callback(false, newEntity);
                         } else {
