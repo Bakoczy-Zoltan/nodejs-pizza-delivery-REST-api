@@ -37,23 +37,24 @@ server.unifiedServer = function(req, res, baseUrl) {
     const method = req.method.toLowerCase();
     const headers = req.headers;
     const searchParams = url.searchParams;
+    let payLoad = '';
 
 
 
-    req.on('data', function() {
-        console.log(req.body, "body");
-
+    req.on('data', function(data) {
+        // console.log(req.body, "body");
+        payLoad += data;
     });
 
 
     req.on('end', function() {
-
+        const payLoadObj = helper.parseJSONobject(payLoad);
         const reqData = {
             'method': method,
             'path': trimmedPathName,
             'headers': headers,
             'searchParamMap': searchParams,
-            'payLoad': ''
+            'payLoad': payLoadObj
         };
 
         // console.log(reqData);
