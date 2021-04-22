@@ -15,17 +15,11 @@ tokenHandler.methodHandler = function(data, callback) {
 
 tokenHandler.login = function(data, callback) {
     const loginData = data.payLoad;
-    console.log('loginData', loginData);
+    let validUser;
 
-    fs.readFile(repositoryService.baseLib + 'db.json', 'utf8', function(err, dbData) {
-        if (!err && dbData) {
-            const dbDataObject = helper.parseJSONobject(dbData);
-            let validUser = false;
-            dbDataObject.users.forEach(user => {
-                if (user.email == loginData.email && user.password == loginData.password) {
-                    validUser = user.id;
-                }
-            });
+    const promise = tokenHandler._searchUserByEmailAndPassword(loginData);
+    promise.then(userID => {
+            validUser = userID;
             if (validUser) {
                 const newToken = {
                     token: 'test123',
@@ -36,18 +30,61 @@ tokenHandler.login = function(data, callback) {
             } else {
                 callback(403, { 'Error': 'Invalid email or password' });
             }
-        } else {
-            callback(500, { 'Error': 'Could not open the token file' });
-        }
-    })
+        })
+        .catch(err => {
+            console.log(err);
+            callback(500, err);
+        })
 }
 
 tokenHandler.logout = function(data, callback) {
+    const loginData = data.payLoad;
+    const promise = tokenHandler._searchUserByEmailAndPassword(loginData);
 
+    promise
+        .then(userId => {
+            if (userId) {
+                tokenHandler._deleteTokenByUserId(userId, callback);
+            } else {
+                callback(403, { 'Error': 'Invalid email or password' })
+            }
+        })
 }
 
-tokenHandler._searchUserByEmailAndPassword = function() {
+tokenHandler._searchUserByEmailAndPassword = function(loginData) {
+    let validUser;
+    return new Promise((res, rej) => {
+        fs.readFile(repositoryService.baseLib + 'db.json', 'utf8', function(err, dbData) {
+            if (!err && dbData) {
+                const dbDataObject = helper.parseJSONobject(dbData);
 
+                dbDataObject.users.forEach(user => {
+                    if (user.email == loginData.email && user.password == loginData.password) {
+                        validUser = user.id;
+                    }
+                });
+                res(validUser);
+            } else {
+                rej(err);
+            }
+        })
+    })
+}
+
+tokenHandler._deleteTokenByUserId = function(userId, callback) {
+    fs.readFile(repositoryService.baseLib + 'token.json', function(err, tokenData) {
+        const tokenListObject = helper.parseJSONobject(tokenData);
+        const listWithoutDeletedToken = tokenListObject.tokens.filter(token => token.userId != userId);
+        tokenListObject.tokens = listWithoutDeletedToken;
+        const newJsonTokenData = helper.makeJSONobject(tokenListObject);
+        repositoryService._refreshDataInJsonFile(repositoryService.baseLib, 'token', newJsonTokenData, function(err) {
+            if (!err) {
+                callback(200);
+            } else {
+                callback(500, { 'Error': 'Could not logout. Token still alive' });
+            }
+        });
+    });
 }
 
 module.exports = tokenHandler;

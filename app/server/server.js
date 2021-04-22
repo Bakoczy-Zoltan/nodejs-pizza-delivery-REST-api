@@ -41,13 +41,9 @@ server.unifiedServer = function(req, res, baseUrl) {
     const searchParams = url.searchParams;
     let payLoad = '';
 
-
-
     req.on('data', function(data) {
-        // console.log(req.body, "body");
         payLoad += data;
     });
-
 
     req.on('end', function() {
         const payLoadObj = helper.parseJSONobject(payLoad);
@@ -70,9 +66,7 @@ server.unifiedServer = function(req, res, baseUrl) {
             res.writeHead(statusCode);
             res.end(respBodyData);
         });
-
-    })
-
+    });
 }
 
 server.init = function() {

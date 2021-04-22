@@ -2,15 +2,9 @@
   "users": [
     {
       "phoneNumber": "dfsfsd367055",
-      "password": "2332",
-      "id": 1,
-      "name": "béci"
-    },
-    {
-      "phoneNumber": "dfsfsd367055",
       "password": "1234",
       "email": "mail@mail.hu",
-      "id": 2
+      "id": 1
     }
   ]
 }
