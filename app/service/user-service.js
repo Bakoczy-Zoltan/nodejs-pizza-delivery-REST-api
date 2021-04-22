@@ -25,13 +25,26 @@ userService.post = function(data, callback) {
 
 userService.get = function(data, callback) {
     console.log("Get get");
-    callback(200);
+    const userId = data.searchParamMap.get('id');
+    repositoryService._getEntityById(userId, 'db', 'users', function(err, userData) {
+        if (!err && userData) {
+            callback(200, userData);
+        } else {
+            callback(500, err);
+        }
+    });
 };
 
 userService.put = function(data, callback) {
     console.log("PUT get");
-    callback(200);
-
+    const userId = data.searchParamMap.get('id');
+    repositoryService._updateEntity(userId, data.payLoad, 'db', 'users', function(err) {
+        if (!err) {
+            callback(200);
+        } else {
+            callback(500, err);
+        }
+    })
 };
 
 userService.delete = function(data, callback) {

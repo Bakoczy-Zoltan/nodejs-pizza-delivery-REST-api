@@ -8,8 +8,10 @@ const https = require('https');
 const config = require('../service/config');
 const path = require('path');
 const userService = require('../service/user-service');
+const tokenService = require('../service/token-service');
 const fs = require('fs');
 const helper = require('../service/helper');
+
 
 const BASE_HTTP_URL = `http://localhost:${config.httpPort}/`;
 const BASE_HTTPS_URL = `http://localhost:${config.httpsPort}/`;
@@ -57,9 +59,6 @@ server.unifiedServer = function(req, res, baseUrl) {
             'payLoad': payLoadObj
         };
 
-        // console.log(reqData);
-
-
         const serviceFunction =
             typeof(router[trimmedPathName]) === 'function' ? router[trimmedPathName] : router.notFound;
 
@@ -89,6 +88,8 @@ server.init = function() {
 const router = {
     user: userService.methodHandler,
     token: {},
+    login: tokenService.methodHandler,
+    logout: tokenService.methodHandler,
     notFound: function(data, callback) {
         console.log("not found");
         callback(404, {});

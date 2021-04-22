@@ -40,6 +40,53 @@ dataHandler._saveNewEntity = function(userObj, dbFileName, entityListName, callb
     }
 }
 
+dataHandler._getEntityById = function(id, dbFileName, listName, callback) {
+    let searchedEntity = null;
+    fs.readFile(dataHandler.baseLib + dbFileName + '.json', 'utf8', function(err, dbData) {
+        if (!err) {
+            const dbObject = helper.parseJSONobject(dbData);
+            dbObject[listName].forEach((entity, index) => {
+                if (entity.id == id) {
+                    searchedEntity = entity;
+                }
+            });
+            if (searchedEntity) {
+                callback(false, searchedEntity);
+            } else {
+                callback({ 'Error': listName + ' not found' });
+            }
+        } else {
+            callback({ 'Error': 'Could not read db file' });
+        }
+    });
+}
+
+dataHandler._updateEntity = function(id, newValueObj, dbFileName, listName, callback) {
+    fs.readFile(dataHandler.baseLib + dbFileName + '.json', 'utf8', function(err, dbData) {
+        if (!err && dbData) {
+            const dbObject = helper.parseJSONobject(dbData);
+            dbObject[listName].forEach(entity => {
+                if (entity.id == id) {
+                    for (const key in newValueObj) {
+                        entity[key] = newValueObj[key];
+                    }
+                }
+            });
+            const updatedJsonDBObject = helper.makeJSONobject(dbObject);
+            dataHandler._refreshDataInJsonFile(dataHandler.baseLib, dbFileName, updatedJsonDBObject, function(err) {
+                if (!err) {
+                    callback(false);
+                } else {
+                    callback({ 'Error': 'Could not updated the ' + listName + ' list' });
+                }
+            })
+        } else {
+            callback({ 'Error': 'Could not open the db file' });
+        }
+    });
+
+}
+
 dataHandler._deleteEntity = function(id, dbFileName, listName, callback) {
     if (id) {
         fs.readFile(dataHandler.baseLib + dbFileName + '.json', 'utf8', function(err, dbData) {
@@ -89,7 +136,6 @@ dataHandler._refreshDataInJsonFile = function(baseLib, dbFileName, jsonObjToSave
             callback({ 'Error': 'Could not open db' })
         }
     });
-
 }
 
 module.exports = dataHandler;
