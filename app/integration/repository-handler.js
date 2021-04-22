@@ -36,7 +36,7 @@ dataHandler._saveNewEntity = function(userObj, dbFileName, entityListName, callb
             }
         });
     } else {
-        callback({ 'Error': 'Invalid or missing user' });
+        callback({ 'Error': 'Invalid or missing users data' });
     }
 }
 

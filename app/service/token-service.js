@@ -22,8 +22,8 @@ tokenHandler.login = function(data, callback) {
             validUser = userID;
             if (validUser) {
                 const newToken = {
-                    token: 'test123',
-                    expireData: Date.now() + 1000 * 60 * 60,
+                    token: helper.makeRandomToken(20),
+                    expireDate: Date.now() + 1000 * 60 * 60 * 24,
                     userId: validUser
                 }
                 repositoryService._saveNewEntity(newToken, 'token', 'tokens', callback);
@@ -53,6 +53,9 @@ tokenHandler.logout = function(data, callback) {
 
 tokenHandler._searchUserByEmailAndPassword = function(loginData) {
     let validUser;
+    const hashedPassword = helper.hashPassword(loginData.password);
+    loginData.password = hashedPassword;
+
     return new Promise((res, rej) => {
         fs.readFile(repositoryService.baseLib + 'db.json', 'utf8', function(err, dbData) {
             if (!err && dbData) {
@@ -73,17 +76,36 @@ tokenHandler._searchUserByEmailAndPassword = function(loginData) {
 
 tokenHandler._deleteTokenByUserId = function(userId, callback) {
     fs.readFile(repositoryService.baseLib + 'token.json', function(err, tokenData) {
-        const tokenListObject = helper.parseJSONobject(tokenData);
-        const listWithoutDeletedToken = tokenListObject.tokens.filter(token => token.userId != userId);
-        tokenListObject.tokens = listWithoutDeletedToken;
-        const newJsonTokenData = helper.makeJSONobject(tokenListObject);
-        repositoryService._refreshDataInJsonFile(repositoryService.baseLib, 'token', newJsonTokenData, function(err) {
-            if (!err) {
-                callback(200);
+        if (!err) {
+            const tokenListObject = helper.parseJSONobject(tokenData);
+            const listWithoutDeletedToken = tokenListObject.tokens.filter(token => token.userId != userId);
+            tokenListObject.tokens = listWithoutDeletedToken;
+            const newJsonTokenData = helper.makeJSONobject(tokenListObject);
+            repositoryService._refreshDataInJsonFile(repositoryService.baseLib, 'token', newJsonTokenData, function(err) {
+                if (!err) {
+                    callback(200);
+                } else {
+                    callback(500, { 'Error': 'Could not logout. Token still alive' });
+                }
+            });
+        } else {
+            callback(500, { 'Error': 'Coulf noz open token file' })
+        }
+    });
+}
+
+tokenHandler._checkToken = function(token) {
+    let foundToken;
+    return new Promise((res, rej) => {
+        fs.readFile(repositoryService.baseLib + 'token.json', 'utf8', function(err, tokenData) {
+            if (!err && tokenData) {
+                const tokenDbObj = helper.parseJSONobject(tokenData);
+                foundToken = tokenDbObj.tokens.find(tokenObj => tokenObj.token == token);
+                res(foundToken);
             } else {
-                callback(500, { 'Error': 'Could not logout. Token still alive' });
+                rej(err);
             }
-        });
+        })
     });
 }
 

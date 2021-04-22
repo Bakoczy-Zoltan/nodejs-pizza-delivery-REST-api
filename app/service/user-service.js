@@ -5,6 +5,8 @@
 
 // Dependency
 const repositoryService = require('../integration/repository-handler');
+const tokenService = require('../service/token-service');
+const helper = require('../service/helper');
 
 const userService = {};
 
@@ -14,50 +16,100 @@ userService.methodHandler = function(data, callback) {
 
 userService.post = function(data, callback) {
     console.log("Post get");
-    repositoryService._saveNewEntity(data.payLoad, 'db', 'users', function(err) {
-        if (!err) {
-            callback(201);
-        } else {
-            callback(500, err);
-        }
-    })
+    const newUser = data.payLoad;
+    const hashedPassword = helper.hashPassword(newUser.password);
+    if (hashedPassword) {
+        newUser.password = hashedPassword;
+        repositoryService._saveNewEntity(data.payLoad, 'db', 'users', function(err) {
+            if (!err) {
+                callback(201);
+            } else {
+                callback(500, err);
+            }
+        })
+    } else {
+        callback(400, { 'Error': 'Could not hashed the password or password is invalid' })
+    }
 };
 
 userService.get = function(data, callback) {
     console.log("Get get");
     const userId = data.searchParamMap.get('id');
-    repositoryService._getEntityById(userId, 'db', 'users', function(err, userData) {
-        if (!err && userData) {
-            callback(200, userData);
-        } else {
-            callback(500, err);
-        }
-    });
+    const token = data.headers.token;
+    if (userId && token) {
+        const tokenPromise = tokenService._checkToken(token);
+
+        tokenPromise
+            .then(token => {
+                if (token && token.userId == userId && token.expireDate > Date.now()) {
+                    repositoryService._getEntityById(userId, 'db', 'users', function(err, userData) {
+                        if (!err && userData && token.expireDate > Date.now()) {
+                            delete userData.password;
+                            callback(200, userData);
+                        } else {
+                            callback(500, err);
+                        }
+                    });
+                } else {
+                    callback(400, { 'Error': 'Token invalid or not found' });
+                }
+            }).catch(err => callback(500, err));
+    } else {
+        callback(403);
+    }
 };
 
 userService.put = function(data, callback) {
     console.log("PUT get");
     const userId = data.searchParamMap.get('id');
-    repositoryService._updateEntity(userId, data.payLoad, 'db', 'users', function(err) {
-        if (!err) {
-            callback(200);
-        } else {
-            callback(500, err);
-        }
-    })
+    const token = data.headers.token;
+    if (userId && token) {
+        const tokenPromise = tokenService._checkToken(token);
+
+        tokenPromise.then(token => {
+            if (token && token.userId == userId && token.expireDate > Date.now()) {
+                repositoryService._updateEntity(userId, data.payLoad, 'db', 'users', function(err) {
+                    if (!err) {
+                        callback(200);
+                    } else {
+                        callback(500, err);
+                    }
+                })
+            } else {
+                callback(400, { 'Error': 'Token invalid or not found' });
+            }
+        }).catch(err => callback(500, err));
+    } else {
+        callback(403);
+    }
+
 };
 
 userService.delete = function(data, callback) {
     console.log("Delete get");
     const userId = data.searchParamMap.get('id');
-    repositoryService._deleteEntity(userId, 'db', 'users', function(err) {
-        console.log(err);
-        if (!err) {
-            callback(200);
-        } else {
-            callback(500, err);
-        }
-    })
+    const token = data.headers.token;
+    if (userId && token && token.expireDate > Date.now()) {
+        const tokenPromise = tokenService._checkToken(token);
+
+        tokenPromise.then(token => {
+            if (token && token.userId == userId) {
+                repositoryService._deleteEntity(userId, 'db', 'users', function(err) {
+                    console.log(err);
+                    if (!err) {
+                        callback(200);
+                    } else {
+                        callback(500, err);
+                    }
+                })
+            } else {
+                callback(400, { 'Error': 'Token invalid or not found' });
+            }
+        });
+    } else {
+        callback(403);
+    }
+
 };
 
 module.exports = userService;
