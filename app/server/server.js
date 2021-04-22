@@ -9,6 +9,7 @@ const config = require('../service/config');
 const path = require('path');
 const userService = require('../service/user-service');
 const tokenService = require('../service/token-service');
+const menuService = require('../service/menu-service');
 const fs = require('fs');
 const helper = require('../service/helper');
 
@@ -81,11 +82,10 @@ server.init = function() {
 
 const router = {
     user: userService.methodHandler,
-    token: {},
     login: tokenService.methodHandler,
     logout: tokenService.methodHandler,
+    order: menuService.methodHandler,
     notFound: function(data, callback) {
-        console.log("not found");
         callback(404, {});
     }
 };
