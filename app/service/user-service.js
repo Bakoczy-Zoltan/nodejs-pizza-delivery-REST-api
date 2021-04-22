@@ -12,30 +12,45 @@ const validator = require('../service/validator');
 const userService = {};
 
 userService.methodHandler = function(data, callback) {
-    userService[data.method](data, callback)
+    const acceptableMethods = ['post', 'get', 'put', 'delete'];
+    if (acceptableMethods.indexOf(data.method) > -1) {
+        userService[data.method](data, callback);
+    } else {
+        callback(405);
+    }
 }
 
 userService.post = function(data, callback) {
-    console.log("Post get");
+    console.log("Post request on path:", data.path);
     let newUser = data.payLoad;
-    newUser = validator.validateUser(newUser)
-    const hashedPassword = helper.hashPassword(newUser.password);
-    if (hashedPassword && newUser) {
-        newUser.password = hashedPassword;
-        repositoryService._saveNewEntity(data.payLoad, 'user', 'users', function(err, newUserData) {
-            if (!err && newUserData) {
-                callback(201, newUserData);
+    newUser = validator.validateUser(newUser);
+
+    const tokenPromise = tokenService._searchUserByEmailAndPassword({ email: newUser.email }, true);
+
+    tokenPromise.then(user => {
+        if (user) {
+            callback(400, { 'Error': 'This email has already signed up' });
+        } else {
+            const hashedPassword = helper.hashPassword(newUser.password);
+            if (hashedPassword && newUser) {
+                newUser.password = hashedPassword;
+                repositoryService._saveNewEntity(newUser, 'user', 'users', function(err, newUserData) {
+                    if (!err && newUserData) {
+                        callback(201, newUserData);
+                    } else {
+                        callback(500, err);
+                    }
+                })
             } else {
-                callback(500, err);
+                callback(400, { 'Error': 'Could not save user, has invalid fields' })
             }
-        })
-    } else {
-        callback(400, { 'Error': 'Could not save user, has invalid fields' })
-    }
+        }
+    }).catch(err => callback(400, err));
+
 };
 
 userService.get = function(data, callback) {
-    console.log("Get get");
+    console.log("GET request on path:", data.path);
     const userId = data.searchParamMap.get('id');
     const token = data.headers.token;
     if (userId && token) {
@@ -62,7 +77,7 @@ userService.get = function(data, callback) {
 };
 
 userService.put = function(data, callback) {
-    console.log("PUT get");
+    console.log("PUT request on path:", data.path);
     const userId = data.searchParamMap.get('id');
     const token = data.headers.token;
     if (userId && token) {
@@ -88,7 +103,7 @@ userService.put = function(data, callback) {
 };
 
 userService.delete = function(data, callback) {
-    console.log("Delete get");
+    console.log("Delete request on path:", data.path);
     const userId = data.searchParamMap.get('id');
     const token = data.headers.token;
     if (userId && token) {
@@ -99,9 +114,9 @@ userService.delete = function(data, callback) {
                 repositoryService._deleteEntity(userId, 'user', 'users', function(err) {
                     console.log(err);
                     if (!err) {
-                        repositoryService._deleteEntity(userId, 'token', 'tokens', function(err) {
+                        repositoryService._deleteEntity(token.id, 'token', 'tokens', function(err) {
                             if (!err) {
-                                callback(false, { 'User': 'Deleted' });
+                                callback(false, { 'User and token': 'Deleted' });
                             } else {
                                 callback(500, { 'Error': 'Token may be still alive' });
                             }

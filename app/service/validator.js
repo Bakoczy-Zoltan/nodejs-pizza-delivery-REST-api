@@ -15,25 +15,26 @@ validator.validateUser = function(userObj) {
     const userName = typeof(userObj.name) === 'string' && userObj.name.length > 5 ? userObj.name : false;
 
     if (email && password && userName) {
-        return userObj;
+        const newValidUser = {
+            email: userObj.email,
+            password: userObj.password,
+            userName: userObj.name
+        };
+        return newValidUser;
     } else {
         return false;
     }
 }
 
 validator.validateOrder = function(orderObj) {
-    console.log("checking", orderObj.order);
     let hasNoInvalidItems = true;
 
     let validOrder = typeof(orderObj.order) == 'object' &&
         orderObj.order instanceof Array &&
         orderObj.order.length > 0 ? true : false;
 
-    console.log('VAlid array?', validOrder);
-
     if (validOrder) {
         hasNoInvalidItems = validator._checkItemsInOrderList(orderObj.order);
-        console.log('valid items', hasNoInvalidItems);
     }
     if (validOrder && hasNoInvalidItems) {
         return orderObj;

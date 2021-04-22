@@ -9,17 +9,13 @@ const tokenService = require('../service/token-service');
 const repositoryService = require('../integration/repository-handler');
 const validator = require('./validator');
 
-const menuCard = {
-    soup: [
-        "Tomato", "Oninon", "Fruit"
-    ],
-    mainDish: [
-        'Beefsteak', 'Crispy Chicken', 'Grilled Veggies'
-    ],
-    dessert: [
-        'Chocolate cake', 'Fruit bomb', 'Ice cream'
-    ]
-};
+const menuCard = [
+    { dish: 'Tomato soup', price: 12 },
+    { dish: 'Onion soup', price: 9 },
+    { dish: 'Beefsteak', price: 42 },
+    { dish: 'CrispyChicken', price: 22 },
+    { dish: 'Chocolate cake', price: 10 }
+];
 
 const orderService = {};
 
@@ -47,7 +43,6 @@ orderService.post = function(data, callback) {
         if (order) {
             const tokenPromise = tokenService._checkToken(token);
             tokenPromise.then(token => {
-                    console.log('checked token', token)
                     if (token && token.userId == userId && token.expireDate > Date.now()) {
                         order.userId = userId;
                         repositoryService._saveNewEntity(order, 'order', 'orders', function(err, savedOrder) {

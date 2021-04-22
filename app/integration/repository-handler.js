@@ -21,11 +21,11 @@ dataHandler._saveNewEntity = function(entityObj, dbFileName, entityListName, cal
             if (!err && userData) {
                 const dbObj = helper.parseJSONobject(userData);
 
-                const entityListObjcet = dbObj[entityListName];
-                let lastIdInList = entityListObjcet[(entityListObjcet.length - 1)] !== undefined ? entityListObjcet[(entityListObjcet.length - 1)].id : 0;
+                const entityListObject = dbObj[entityListName];
+                let lastIdInList = entityListObject[(entityListObject.length - 1)] !== undefined ? entityListObject[(entityListObject.length - 1)].id : 0;
                 entityObj.id = lastIdInList + 1;
-                entityListObjcet.push(entityObj);
-                dbObj[entityListName] = entityListObjcet;
+                entityListObject.push(entityObj);
+                dbObj[entityListName] = entityListObject;
 
                 const newJsonList = helper.makeJSONobject(dbObj);
 

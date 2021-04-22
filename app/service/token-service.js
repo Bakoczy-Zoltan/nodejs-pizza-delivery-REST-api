@@ -10,14 +10,19 @@ const helper = require('./helper');
 tokenHandler = {};
 
 tokenHandler.methodHandler = function(data, callback) {
-    tokenHandler[data.path](data, callback)
+    const acceptableMethods = ['post'];
+    if (acceptableMethods.indexOf(data.method) == -1) {
+        callback(405);
+    } else {
+        tokenHandler[data.path](data, callback);
+    }
 }
 
 tokenHandler.login = function(data, callback) {
     const loginData = data.payLoad;
     let validUser;
 
-    const promise = tokenHandler._searchUserByEmailAndPassword(loginData);
+    const promise = tokenHandler._searchUserByEmailAndPassword(loginData, false);
     promise.then(userId => {
             validUser = userId;
             if (validUser) {
@@ -39,7 +44,7 @@ tokenHandler.login = function(data, callback) {
 
 tokenHandler.logout = function(data, callback) {
     const loginData = data.payLoad;
-    const promise = tokenHandler._searchUserByEmailAndPassword(loginData);
+    const promise = tokenHandler._searchUserByEmailAndPassword(loginData, false);
 
     promise
         .then(userId => {
@@ -51,10 +56,13 @@ tokenHandler.logout = function(data, callback) {
         })
 }
 
-tokenHandler._searchUserByEmailAndPassword = function(loginData) {
+tokenHandler._searchUserByEmailAndPassword = function(loginData, checkOnlyByEmail) {
     let validUser;
-    const hashedPassword = helper.hashPassword(loginData.password);
-    loginData.password = hashedPassword;
+
+    if (!checkOnlyByEmail) {
+        const hashedPassword = helper.hashPassword(loginData.password);
+        loginData.password = hashedPassword;
+    }
 
     return new Promise((res, rej) => {
         fs.readFile(repositoryService.baseLib + 'user.json', 'utf8', function(err, dbData) {
@@ -62,7 +70,9 @@ tokenHandler._searchUserByEmailAndPassword = function(loginData) {
                 const dbDataObject = helper.parseJSONobject(dbData);
 
                 dbDataObject.users.forEach(user => {
-                    if (user.email == loginData.email && user.password == loginData.password) {
+                    if (user.email == loginData.email && user.password == loginData.password && !checkOnlyByEmail) {
+                        validUser = user.id;
+                    } else if (user.email == loginData.email && checkOnlyByEmail) {
                         validUser = user.id;
                     }
                 });
