@@ -16,21 +16,21 @@ const dataHandler = {};
 
 dataHandler.baseLib = path.join(__dirname, '../.data/');
 
-dataHandler._saveNewEntity = function(userObj, dbFileName, entityListName, callback) {
-    if (userObj) {
+dataHandler._saveNewEntity = function(entityObj, dbFileName, entityListName, callback) {
+    if (entityObj) {
         fs.readFile(dataHandler.baseLib + dbFileName + '.json', 'utf8', function(err, userData) {
             if (!err && userData) {
                 const dbObj = helper.parseJSONobject(userData);
 
                 const userListObject = dbObj[entityListName];
                 let lastUserId = userListObject[(userListObject.length - 1)] !== undefined ? userListObject[(userListObject.length - 1)].id : 0;
-                userObj.id = lastUserId + 1;
-                userListObject.push(userObj);
+                entityObj.id = lastUserId + 1;
+                userListObject.push(entityObj);
                 dbObj[entityListName] = userListObject;
 
                 const jsonUserList = helper.makeJSONobject(dbObj);
 
-                dataHandler._refreshDataInJsonFile(dataHandler.baseLib, dbFileName, jsonUserList, callback);
+                dataHandler._refreshDataInJsonFile(dataHandler.baseLib, dbFileName, jsonUserList, entityObj, callback);
             } else {
                 callback({ 'Error': 'Could not read the file of ' + dbFileName });
             }
@@ -114,7 +114,7 @@ dataHandler._deleteEntity = function(id, dbFileName, listName, callback) {
     }
 }
 
-dataHandler._refreshDataInJsonFile = function(baseLib, dbFileName, jsonObjToSave, callback) {
+dataHandler._refreshDataInJsonFile = function(baseLib, dbFileName, jsonObjToSave, newEntity, callback) {
     const path = baseLib + dbFileName + '.json';
 
     fs.open(path, 'r+', function(err, fd) {
@@ -123,7 +123,9 @@ dataHandler._refreshDataInJsonFile = function(baseLib, dbFileName, jsonObjToSave
                 if (!err) {
                     fs.close(fd, function(err) {
                         if (!err) {
-                            callback(false);
+                            // const responseObject = helper.parseJSONobject(jsonObjToSave);
+                            delete newEntity.password;
+                            callback(false, newEntity);
                         } else {
                             callback({ 'Error': 'Could not close the file' });
                         }

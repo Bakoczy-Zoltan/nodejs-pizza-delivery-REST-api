@@ -7,6 +7,7 @@
 const repositoryService = require('../integration/repository-handler');
 const tokenService = require('../service/token-service');
 const helper = require('../service/helper');
+const validator = require('../service/validator');
 
 const userService = {};
 
@@ -16,19 +17,20 @@ userService.methodHandler = function(data, callback) {
 
 userService.post = function(data, callback) {
     console.log("Post get");
-    const newUser = data.payLoad;
+    let newUser = data.payLoad;
+    newUser = validator.validateUser(newUser)
     const hashedPassword = helper.hashPassword(newUser.password);
-    if (hashedPassword) {
+    if (hashedPassword && newUser) {
         newUser.password = hashedPassword;
-        repositoryService._saveNewEntity(data.payLoad, 'db', 'users', function(err) {
-            if (!err) {
-                callback(201);
+        repositoryService._saveNewEntity(data.payLoad, 'db', 'users', function(err, newUserData) {
+            if (!err && newUserData) {
+                callback(201, newUserData);
             } else {
                 callback(500, err);
             }
         })
     } else {
-        callback(400, { 'Error': 'Could not hashed the password or password is invalid' })
+        callback(400, { 'Error': 'Could not save user, has invalid fields' })
     }
 };
 

@@ -7,6 +7,7 @@
 const helper = require('../service/helper');
 const tokenService = require('../service/token-service');
 const repositoryService = require('../integration/repository-handler');
+const validator = require('./validator');
 
 const menuCard = {
     soup: [
@@ -36,31 +37,38 @@ orderService.get = function(data, callback) {
 };
 
 orderService.post = function(data, callback) {
-    const order = data.payLoad;
+
     const userId = data.searchParamMap.get('id');
     const token = data.headers.token;
 
     if (userId && token) {
-        const tokenPromise = tokenService._checkToken(token);
-        tokenPromise.then(token => {
-                console.log('checked token', token)
-                if (token && token.userId == userId && token.expireDate > Date.now()) {
-                    repositoryService._saveNewEntity(order, 'order', 'orders', function(err) {
-                        if (!err) {
-                            callback(201);
-                        } else {
-                            callback(500, { 'Error': 'Could not save order' });
-                        }
-                    })
-                } else {
-                    callback(400, { 'Error': 'invalid token or userId' })
-                }
-            })
-            .catch(err => {
-                callback(500, err);
-            })
+        let order = data.payLoad;
+        order = validator.validateOrder(order);
+        if (order) {
+            const tokenPromise = tokenService._checkToken(token);
+            tokenPromise.then(token => {
+                    console.log('checked token', token)
+                    if (token && token.userId == userId && token.expireDate > Date.now()) {
+                        order.userId = userId;
+                        repositoryService._saveNewEntity(order, 'order', 'orders', function(err, savedOrder) {
+                            if (!err && savedOrder) {
+                                callback(201, savedOrder);
+                            } else {
+                                callback(500, { 'Error': 'Could not save order' });
+                            }
+                        })
+                    } else {
+                        callback(400, { 'Error': 'invalid token or userId' });
+                    }
+                })
+                .catch(err => {
+                    callback(500, err);
+                })
+        } else {
+            callback(400, { 'Error': 'Missing or invalid fields in order' });
+        }
     } else {
-        callback(403)
+        callback(403);
     }
 };
 

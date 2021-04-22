@@ -18,8 +18,8 @@ tokenHandler.login = function(data, callback) {
     let validUser;
 
     const promise = tokenHandler._searchUserByEmailAndPassword(loginData);
-    promise.then(userID => {
-            validUser = userID;
+    promise.then(userId => {
+            validUser = userId;
             if (validUser) {
                 const newToken = {
                     token: helper.makeRandomToken(20),
